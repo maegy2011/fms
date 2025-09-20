@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Seed configuration
+seed {
+  exec = "tsx prisma/seed.ts"
+}
+
+model User {
+  id              String   @id @default(cuid())
+  username        String   @unique
+  email           String   @unique
+  phone           String   @unique
+  name            String
+  password        String
+  role            UserRole @default(USER)
+  isActive        Boolean  @default(true)
+  isApproved      Boolean  @default(false)
+  securityQuestion SecurityQuestion?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  incomes Income[]
+
+  @@map("users")
+}
+
+model SecurityQuestion {
+  id       String @id @default(cuid())
+  question String
+  answer   String
+  userId   String @unique
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("security_questions")
+}
+
+model Entity {
+  id            String      @id @default(cuid())
+  name          String
+  mainEntityId  String?
+  mainEntity    Entity?     @relation("EntityHierarchy", fields: [mainEntityId], references: [id])
+  subEntities   Entity[]    @relation("EntityHierarchy")
+  province      String
+  type          EntityType  @default(MAIN)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  incomes Income[]
+
+  @@map("entities")
+}
+
+model Income {
+  id          String      @id @default(cuid())
+  amount      Float
+  dueDate     DateTime
+  entityId    String
+  entity      Entity      @relation(fields: [entityId], references: [id])
+  month       Int         // 1-12 for the month
+  year        Int         // Year
+  type        IncomeType
+  description String?
+  gpNumber    String?
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("incomes")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum EntityType {
+  MAIN
+  SUB
+  EMPLOYEE
+}
+
+enum IncomeType {
+  SUBSCRIPTION
+  LEGAL_FEES
+  PENALTIES
+  AUTOMATION
+  OTHER
+}
